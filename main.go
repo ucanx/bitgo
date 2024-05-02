@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	MainNetMagic    = 0xD9B4BEF9
+	TestNetMagic    = 0x0709110B // magic value for testnet
+	MainNetMagic    = 0xD9B4BEF9 // magic value for mainnet
 	CommandLength   = 12
 	ProtocolVersion = 70015
 )
@@ -36,8 +37,8 @@ type VersionMessage struct {
 	Relay       bool
 }
 
+// init initializes the logger
 func init() {
-	// Initialize the logger
 	log.SetOutput(os.Stdout)
 }
 
@@ -104,7 +105,8 @@ func serializeVersionMsg(msg VersionMessage) []byte {
 
 	payload := result.Bytes()
 	var buffer bytes.Buffer
-	buffer.Write([]byte{0xF9, 0xBE, 0xB4, 0xD9}) // Main network magic
+	buffer.Write([]byte{0x0B, 0x11, 0x09, 0x07}) // Test network magic
+	// buffer.Write([]byte{0xF9, 0xBE, 0xB4, 0xD9}) // Main network magic
 	buffer.Write(padCommandName("version"))
 	binary.Write(&buffer, binary.LittleEndian, uint32(len(payload)))
 	buffer.Write(payload)
@@ -152,7 +154,8 @@ func handleIncomingMessages(conn net.Conn) {
 // sendVerack sends a verack message to the node
 func sendVerack(conn net.Conn) {
 	var buffer bytes.Buffer
-	buffer.Write([]byte{0xF9, 0xBE, 0xB4, 0xD9}) // Main network magic
+	buffer.Write([]byte{0x0B, 0x11, 0x09, 0x07}) // Test network magic
+	// buffer.Write([]byte{0xF9, 0xBE, 0xB4, 0xD9}) // Main network magic
 	buffer.Write(padCommandName("verack"))
 	binary.Write(&buffer, binary.LittleEndian, uint32(0)) // No payload
 	_, err := conn.Write(buffer.Bytes())
