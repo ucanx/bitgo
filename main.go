@@ -37,6 +37,7 @@ type VersionMessage struct {
 }
 
 func init() {
+	// Initialize the logger
 	log.SetOutput(os.Stdout)
 }
 
@@ -61,6 +62,7 @@ func main() {
 	handleIncomingMessages(conn)
 }
 
+// createVersionMessage creates a new VersionMessage object
 func createVersionMessage() VersionMessage {
 	return VersionMessage{
 		Version:     ProtocolVersion,
@@ -75,6 +77,7 @@ func createVersionMessage() VersionMessage {
 	}
 }
 
+// NewNetAddress creates a new NetAddress object
 func NewNetAddress(ip net.IP, port uint16) NetAddress {
 	var addr NetAddress
 	addr.Services = 1 // NODE_NETWORK
@@ -83,6 +86,7 @@ func NewNetAddress(ip net.IP, port uint16) NetAddress {
 	return addr
 }
 
+// serializeVersionMsg serializes a VersionMessage into a byte slice
 func serializeVersionMsg(msg VersionMessage) []byte {
 	var result bytes.Buffer
 	binary.Write(&result, binary.LittleEndian, msg.Version)
@@ -108,12 +112,14 @@ func serializeVersionMsg(msg VersionMessage) []byte {
 	return buffer.Bytes()
 }
 
+// padCommandName pads the command name with null bytes to make it 12 bytes long
 func padCommandName(cmd string) []byte {
 	var padded [CommandLength]byte
 	copy(padded[:], cmd)
 	return padded[:]
 }
 
+// handleIncomingMessages reads and processes incoming messages from the node
 func handleIncomingMessages(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 	for {
@@ -143,6 +149,7 @@ func handleIncomingMessages(conn net.Conn) {
 	}
 }
 
+// sendVerack sends a verack message to the node
 func sendVerack(conn net.Conn) {
 	var buffer bytes.Buffer
 	buffer.Write([]byte{0xF9, 0xBE, 0xB4, 0xD9}) // Main network magic
