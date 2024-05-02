@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -38,8 +37,42 @@ type VersionMessage struct {
 }
 
 func init() {
-	// Initialize the logger
 	log.SetOutput(os.Stdout)
+}
+
+func main() {
+	log.Println("Starting the Bitcoin node handshake client...")
+	conn, err := net.Dial("tcp", "testnet-seed.bitcoin.jonasschnelli.ch:18333")
+	if err != nil {
+		log.Fatalf("Failed to connect: %v", err)
+	}
+	defer conn.Close()
+	log.Println("Connected to the node.")
+
+	versionMsg := createVersionMessage()
+	msg := serializeVersionMsg(versionMsg)
+
+	_, err = conn.Write(msg)
+	if err != nil {
+		log.Fatalf("Failed to send version message: %v", err)
+	}
+	log.Println("Version message sent.")
+
+	handleIncomingMessages(conn)
+}
+
+func createVersionMessage() VersionMessage {
+	return VersionMessage{
+		Version:     ProtocolVersion,
+		Services:    1,
+		Timestamp:   time.Now().Unix(),
+		AddrRecv:    NewNetAddress(net.ParseIP("127.0.0.1"), 18333),
+		AddrFrom:    NewNetAddress(net.ParseIP("127.0.0.1"), 8333),
+		Nonce:       0,
+		UserAgent:   "/MyNode:0.1/",
+		StartHeight: 0,
+		Relay:       false,
+	}
 }
 
 func NewNetAddress(ip net.IP, port uint16) NetAddress {
@@ -81,40 +114,13 @@ func padCommandName(cmd string) []byte {
 	return padded[:]
 }
 
-func main() {
-	conn, err := net.Dial("tcp", "testnet-seed.bitcoin.jonasschnelli.ch:18333")
-	if err != nil {
-		fmt.Println("Failed to connect:", err)
-		return
-	}
-	defer conn.Close()
-
-	versionMsg := VersionMessage{
-		Version:     ProtocolVersion,
-		Services:    1,
-		Timestamp:   time.Now().Unix(),
-		AddrRecv:    NewNetAddress(net.ParseIP("127.0.0.1"), 18333),
-		AddrFrom:    NewNetAddress(net.ParseIP("127.0.0.1"), 8333),
-		Nonce:       0,
-		UserAgent:   "/MyNode:0.1/",
-		StartHeight: 0,
-		Relay:       false,
-	}
-
-	msg := serializeVersionMsg(versionMsg)
-	_, err = conn.Write(msg)
-	if err != nil {
-		fmt.Println("Failed to send version message:", err)
-		return
-	}
-
-	// Message handling logic
+func handleIncomingMessages(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 	for {
 		header := make([]byte, 24)
 		_, err := io.ReadFull(reader, header)
 		if err != nil {
-			fmt.Println("Error reading:", err)
+			log.Printf("Error reading: %v", err)
 			break
 		}
 		command := strings.TrimSpace(string(header[4:16]))
@@ -122,21 +128,22 @@ func main() {
 		payload := make([]byte, payloadLength)
 		_, err = io.ReadFull(reader, payload)
 		if err != nil {
-			fmt.Println("Error reading payload:", err)
+			log.Printf("Error reading payload: %v", err)
 			break
 		}
+		log.Printf("Received command %s", command)
+
 		if command == "version" {
-			fmt.Println("Received version message")
+			log.Println("Received version message")
 			sendVerack(conn)
 		} else if command == "verack" {
-			fmt.Println("Received verack message")
+			log.Println("Received verack message")
 			break // Handshake completed successfully
 		}
 	}
 }
 
 func sendVerack(conn net.Conn) {
-	fmt.Println("Sent verack")
 	var buffer bytes.Buffer
 	buffer.Write([]byte{0xF9, 0xBE, 0xB4, 0xD9}) // Main network magic
 	buffer.Write(padCommandName("verack"))
