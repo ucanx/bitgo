@@ -6,7 +6,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"net"
+	"os"
 	"strings"
 	"time"
 )
@@ -33,6 +35,11 @@ type VersionMessage struct {
 	UserAgent   string
 	StartHeight int32
 	Relay       bool
+}
+
+func init() {
+	// Initialize the logger
+	log.SetOutput(os.Stdout)
 }
 
 func NewNetAddress(ip net.IP, port uint16) NetAddress {
@@ -129,10 +136,15 @@ func main() {
 }
 
 func sendVerack(conn net.Conn) {
+	fmt.Println("Sent verack")
 	var buffer bytes.Buffer
 	buffer.Write([]byte{0xF9, 0xBE, 0xB4, 0xD9}) // Main network magic
 	buffer.Write(padCommandName("verack"))
 	binary.Write(&buffer, binary.LittleEndian, uint32(0)) // No payload
-	conn.Write(buffer.Bytes())
-	fmt.Println("Sent verack")
+	_, err := conn.Write(buffer.Bytes())
+	if err != nil {
+		log.Printf("Failed to send verack: %v", err)
+	} else {
+		log.Println("Sent verack")
+	}
 }
