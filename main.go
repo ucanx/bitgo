@@ -111,6 +111,8 @@ func serializeVersionMsg(msg VersionMessage) []byte {
 	binary.Write(&buffer, binary.LittleEndian, uint32(len(payload)))
 	buffer.Write(payload)
 
+	log.Printf("Sending serialized version message: %x", buffer.Bytes())
+
 	return buffer.Bytes()
 }
 
