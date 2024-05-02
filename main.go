@@ -128,24 +128,26 @@ func handleIncomingMessages(conn net.Conn) {
 		header := make([]byte, 24)
 		_, err := io.ReadFull(reader, header)
 		if err != nil {
-			log.Printf("Error reading: %v", err)
+			log.Printf("Error reading header: %v", err)
 			break
 		}
 		command := strings.TrimSpace(string(header[4:16]))
 		payloadLength := binary.LittleEndian.Uint32(header[16:20])
+		log.Printf("Received command: %s, Payload length: %d", command, payloadLength)
+
 		payload := make([]byte, payloadLength)
 		_, err = io.ReadFull(reader, payload)
 		if err != nil {
 			log.Printf("Error reading payload: %v", err)
 			break
 		}
-		log.Printf("Received command %s", command)
+		log.Printf("Received payload for command %s", command)
 
 		if command == "version" {
-			log.Println("Received version message")
+			log.Println("Processing version message")
 			sendVerack(conn)
 		} else if command == "verack" {
-			log.Println("Received verack message")
+			log.Println("Received verack, handshake complete.")
 			break // Handshake completed successfully
 		}
 	}
